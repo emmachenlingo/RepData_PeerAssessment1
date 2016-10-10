@@ -7,19 +7,57 @@ output:
 
 
 ## Loading and preprocessing the data
-
-
-
+```{r readfile, echo=TRUE}
+activity<-read.csv("activity.csv")
+head(activity)
+```
 ## What is mean total number of steps taken per day?
-
-
-
+```{r totalnum, echo=TRUE}
+steps_date<-tapply(activity$steps,activity$date,sum)
+hist(steps_date,main = "the total number of steps taken each day",xlab = "steps")
+## mean and median of the total number of steps taken per day
+mean(steps_date,na.rm=TRUE)
+median(steps_date,na.rm = TRUE)
+```
 ## What is the average daily activity pattern?
-
-
-
+```{r average, echo=TRUE}
+steps_intv<-tapply(activity$steps,activity$interval,mean,na.rm=TRUE)
+plot(x=rownames(steps_intv),type="l",y=steps_intv,main= "the average number of steps each 5-minute interval",xlab="time",ylab="averaged_steps")
+which.max(steps_intv)
+```
 ## Imputing missing values
-
-
-
+```{r complete, echo=TRUE}
+ok<-complete.cases(activity)
+sum(!ok)
+library(dplyr)
+act_intv<-group_by(activity,interval)
+head(act_intv)
+mean_intv<-mutate(act_intv,ave=mean(steps,na.rm = TRUE))
+head(mean_intv)
+mean_intv[!ok,1] <- mean_intv[!ok,4]
+head(mean_intv)
+## a new dataset with na filled in
+steps_date_rmna<-tapply(mean_intv$steps,mean_intv$date,sum)
+hist(steps_date_rmna,main = "the total number of steps taken each day with NA filled in",xlab = "steps")
+mean(steps_date_rmna)
+median(steps_date_rmna)
+```
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r weekday_weekend, echo=TRUE}
+library(lattice)
+mean_intv<-transform(mean_intv,date=as.Date(date))
+mean_intv<-mutate(mean_intv,days=weekdays(date))
+head(mean_intv)
+steps_days<-mean_intv[,-4]
+head(steps_days)
+wkd<-steps_days$days %in% c("Monday","Tuesday","Wednesday","Thursday","Friday")
+wkend<-steps_days$days %in% c("Saturday","Sunday")
+steps_days$week[wkd]<-"weekday"
+steps_days$week[wkend]<-"weekend"
+head(steps_days)
+step_week_invt<-group_by(steps_days,week,interval)
+step_week_invt<-mutate(step_week_invt,ave_step=mean(steps))
+head(step_week_invt)
+xyplot(ave_step ~ interval | week, data = step_week_invt, type="l",xlab = "interval", ylab = "average steps",layout = c(1,2))
+```
+
